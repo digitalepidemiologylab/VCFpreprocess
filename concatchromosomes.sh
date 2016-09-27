@@ -1,8 +1,50 @@
-#!/bin/bash 
+	#!/bin/bash 
+
+### Change Zip format before calling split.js
+
+
+
+###########################
+#Change the compression format of the dataset from .vcf.gz to .vcf.zip
+###########################
+NUMBEROFFILES=$(ls *.vcf.gz | wc -l)
+ITER=0
+
+for _file in *.vcf.gz; do
+
+	ITER=$((ITER+1))
+
+	NAME="${_file%.*}"
+	echo $NAME
+	NAMEZIP="$NAME.zip"
+
+	echo "unzipping $_file ($ITER / $NUMBEROFFILES)"
+	gunzip $_file
+
+	echo "rezipping $NAME to $NAMEZIP"
+	zip -r $NAMEZIP $NAME
+
+	echo "erasing $NAME"
+	rm $NAME
+done
+
+
+############################
+#Separate samples using split.js
+############################
+
+node split.js
+
+
 
 #############################
 #Reorganize folders
 #############################
+
+
+mkdir ./bychr
+mv ./split/* ./bychr
+
 
 if [ ! -d ./byusr ]; then
 	echo "byusr directory does not exist. Creating it ..."
@@ -16,6 +58,10 @@ if [ ! -d ./splitconcatfiles ]; then
 	mkdir splitconcatfiles
 fi
 
+if [ ! -d ./comments ]; then
+	mkdir ./comments
+fi
+
 
 #############################
 #Organize the data set by samples
@@ -23,7 +69,6 @@ fi
 
 for _directory in ./bychr/* ; do
 
-	echo $_directory
 	NAMECHR=${_directory##*/}
 
 	for _sample in $_directory/* ; do
@@ -37,14 +82,45 @@ for _directory in ./bychr/* ; do
 
 		####Copy and rename files
 		NEWNAME="chr-$NAMECHR-usr-$NAMEUSR.txt.gz"
-		echo "Moving $NAMECHR from usr $NAMEUSR. New name = $NEWNAME"
+		echo "Moving chromosome $NAMECHR from usr $NAMEUSR. New name = $NEWNAME"
 
-		cp $_directory/$NAMEFILE ./byusr/$NAMEUSR
-		mv ./byusr/$NAMEUSR/$NAMEFILE ./byusr/$NAMEUSR/$NEWNAME
+
+
+		#### removes the first row of the _meta files (columns names) before concatenating them. These lines should be removed if split.js changes its output format
+
+		if [ $NAMEFILE == *_meta* ]; then
+
+
+			echo "Removing header row from $NAMEFILE"
+			NAME="$NAMEUSR.txt"
+			gunzip $NAMEFILE
+			echo `head -5 $NAME`
+
+			sed -i -e "1d" $NAME
+			echo `head -4 $NAME`
+
+			gzip $NAME
+
+		fi
+
+		if [ $NAMEFILE == *_comments* ]; then
+
+			cp $_directory/$NAMEFILE ./comments
+			mv ./byusr/$NAMEUSR/$NAMEFILE ./byusr/$NAMEUSR/$NEWNAME
+
+		else
+
+			cp $_directory/$NAMEFILE ./byusr/$NAMEUSR
+			mv ./byusr/$NAMEUSR/$NAMEFILE ./byusr/$NAMEUSR/$NEWNAME
+		fi
+
+
+
 
 	done
 
 done
+
 
 
 
@@ -67,7 +143,9 @@ for _directory in ./byusr/* ; do
 
 	for ((_chromosome=1; _chromosome<=$NUMBERCHROM; _chromosome++)); do
 
-		NAMECHR="$_directory/*chr-$_chromosome-usr-$NAMEUSR.txt.gz"
+		echo "I am in the loop !"
+
+		NAMECHR="$_directory/chr-$_chromosome-usr-$NAMEUSR.txt.gz"
 		echo "Concatenating chromosomes from $NAMEUSR : adding chromosome $NAMECHR "
 
 		zcat $NAMECHR>> $NAMEOUTPUT
@@ -82,8 +160,8 @@ for _directory in ./byusr/* ; do
 	#Control the file and move it to the final directory
 	##########################
 
-	LINESNEWFILE=$(zcat ./byusr/$_directory/chrconcat$NAMEUSR.txt | wc -l)
-	LINESORIGINALFILES=$(zcat ./byusr/$_directory/chr*.txt.gz | wc -l)
+	LINESNEWFILE=$(zcat $_directory/chrconcat$NAMEUSR.txt | wc -l)
+	LINESORIGINALFILES=$(zcat $_directory/chr-*usr*.txt.gz | wc -l)
 
 	if [ $LINESORIGINALFILES != $LINESNEWFILE ]; then
 
