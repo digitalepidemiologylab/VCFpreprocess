@@ -2,9 +2,17 @@ import VCF
 import pandas as pd
 import glob
 import os
+import re
 
 #######################Works with python 2.7.12 but not 3.5.2
 
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
+
+
+###################################################################
 PATH = "./"
 REFSNPFILE= "./snpslinkedwithheight.csv"
 IT = 0
@@ -29,13 +37,12 @@ for files in sorted(glob.glob('*.vcf.gz')):
 	print("File found at {0} : {1}".format(PATH,files))
 
 print("Number of files found in {0} : {1}".format(PATH, IT))
-print(vcffiles)
-
+vcffiles = natural_sort(vcffiles)
 
 ####
 for file in vcffiles:
 
-
+	print("Loading file {} in a dataframe ...".format(file))
 	chromosomefile = VCF.dataframe(file).drop(["ALT", "REF", "QUAL", "FILTER", "INFO"], 1)
 	print(chromosomefile.head(5))
 
