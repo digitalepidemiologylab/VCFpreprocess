@@ -31,12 +31,14 @@ refpositions = refsnps["Position"].tolist()
 
 ####Looking at the files present in the directory before working on them
 
-for files in sorted(glob.glob('*.vcf.gz')):
+for files in glob.glob('*.vcf.gz'):
 	IT+=1
 	vcffiles.append(files)
 	print("File found at {0} : {1}".format(PATH,files))
 
 print("Number of files found in {0} : {1}".format(PATH, IT))
+
+###Naturally sort the files so that the chromosomes are processed in the roght order
 vcffiles = natural_sort(vcffiles)
 
 ####
@@ -44,17 +46,20 @@ for file in vcffiles:
 
 	print("Loading file {} in a dataframe ...".format(file))
 	chromosomefile = VCF.dataframe(file).drop(["ALT", "REF", "QUAL", "FILTER", "INFO"], 1)
-	print(chromosomefile.head(5))
-
-	chromosomefile["Row"] = range(1,chromosomefile.shape[0]+1)
+	skip = VCF._count_comments(file)+2
+	chromosomefile["Row"] = range(skip,chromosomefile.shape[0]+skip)
 	
-	matchingreferences = pd.concat((matchingreferences, chromosomefile[chromosomefile['ID'].isin(refids)]))
-	matchingpositions = pd.concat((matchingpositions, chromosomefile[chromosomefile["POS"].isin(refpositions)]))
+	print("Searching for matches with the reference dataframes...")
+	newmatchingreferences = pd.concat((matchingreferences, chromosomefile[chromosomefile['ID'].isin(refids)]))
+	newmatchingpositions = pd.concat((matchingpositions, chromosomefile[chromosomefile["POS"].isin(refpositions)]))
 
+	print("{0} ref matching and {1} positions matching in {2}".format(newmatchingreferences.shape[0] - matchingreferences.shape[0], newmatchingpositions.shape[0] - matchingpositions.shape[0], file))
 
+	matchingreferences = newmatchingreferences
+	matchingpositions = newmatchingpositions
 print("We found {} matching ref of snps.".format(matchingreferences.shape[0]))
 
 print("We found {} matching positions of snps.".format(matchingpositions.shape[0]))
 
-matchingpositions.to_csv(path_or_buf="./MatchingPositions.csv", sep="\t")
-matchingreferences.to_csv(path_or_buf="./MatchingReferences.csv", sep="\t")
+matchingpositions.to_csv(path_or_buf="./MatchingPositions.csv", sep="\t", index=False)
+matchingreferences.to_csv(path_or_buf="./MatchingReferences.csv", sep="\t", index=False)
