@@ -61,7 +61,8 @@ PATH = "./"
 REFSNPFILE= "./snpslinkedwithheight.csv"
 BEFORECHRNB = ""
 AFTERCHRNB = ".QC.vcf.gz.vcf.gz"
-IT = 0
+ITID = 0
+ITPOS = 0
 NBCORPOS = 0
 NBCORID = 0
 
@@ -122,10 +123,16 @@ for files in vcffiles :
 	print("Extract corresponding positions")
 	for line in filteredmatchpos["Corresponding row in vcf file"] :
 		subprocess.call("zcat {0} | awk 'NR=={1} {{print;exit}}' >> {2}".format(files,line,outputfilePOS), shell=True)
+		ITPOS+=1
+		print("Information on {0}/{1} matching positions copied".format(ITPOS,matchingpositions.shape[0]))
 
 	print("Extract corresponding references")
 	for line in filteredmatchref["Corresponding row in vcf file"] :
 		subprocess.call("zcat {0} | awk 'NR=={1} {{print;exit}}' >> {2}".format(files,line,outputfileID), shell=True)
+		ITID+=1
+		print("Information on {0}/{1} matching references copied".format(ITID,matchingreferences.shape[0]))
+
+
 
 
 	####compress the output file to .gz

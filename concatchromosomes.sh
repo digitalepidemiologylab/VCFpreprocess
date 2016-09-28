@@ -143,7 +143,6 @@ for _directory in ./byusr/* ; do
 
 	for ((_chromosome=1; _chromosome<=$NUMBERCHROM; _chromosome++)); do
 
-		echo "I am in the loop !"
 
 		NAMECHR="$_directory/chr-$_chromosome-usr-$NAMEUSR.txt.gz"
 		echo "Concatenating chromosomes from $NAMEUSR : adding chromosome $NAMECHR "
