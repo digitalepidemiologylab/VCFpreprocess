@@ -10,7 +10,7 @@ import re
 #################################################################################
 #################################################################################
 
-PATH = "./FichiersVCF/"
+PATH = "./"#FichiersVCF/"
 REFSNPFILE= "./snpslinkedwithheight.csv"
 BEFORECHRNB = PATH+""
 AFTERCHRNB = ".QC.vcf.gz.vcf.gz"
@@ -35,12 +35,13 @@ def natural_sort(l):
 def list_vcf_files(PATH):
 	vcffiles = []
 	iterator = 0
+	print(PATH)
 	for files in glob.glob(PATH+'*.vcf.gz'):
 		iterator+=1
 		vcffiles.append(files)
 		print("File found at {0} : {1}".format(PATH,files))
 
-	print("Number of files found in {0} : {1}".format(PATH, iterator))
+	print("Number of vcf files found in {0} : {1}".format(PATH, iterator))
 
 	####Naturally sort the files so that the chromosomes are processed in the roght order
 	vcffiles = natural_sort(vcffiles)
@@ -79,3 +80,31 @@ def find_matches(vcffiles, refsnps) :
 
 	print("We found {} matching positions of snps.".format(matchingpositions.shape[0]))
 	return matchingreferences, matchingpositions
+
+
+	#####Modified version of the one from VCF.py, allow to load a complete file into a dataframe. /!\ Don't load unfiltered vcf files with this function !
+	def dataframe(filename,large=True):
+		if large:
+			# Set the proper argument if the file is compressed.
+			comp = 'gzip' if filename.endswith('.gz') else None
+			# Count how many comment lines should be skipped.
+			comments = _count_comments(filename)
+			# Return a simple DataFrame without splitting the INFO column.
+			return pd.read_table(filename, compression=comp, skiprows=comments,
+							names=VCF_HEADER, usecols=range(8))
+
+		# Each column is a list stored as a value in this dict. The keys for this
+		# dict are the VCF column names and the keys in the INFO column.
+		result = OrderedDict()
+		# Parse each line in the VCF file into a dict.
+		for i, line in enumerate(lines(filename)):
+			for key in line.keys():
+				# This key has not been seen yet, so set it to None for all
+				# previous lines.
+				if key not in result:
+					result[key] = [None] * i
+			# Ensure this row has some value for each column.
+			for key in result.keys():
+				result[key].append(line.get(key, None))
+
+		return pd.DataFrame(result)
