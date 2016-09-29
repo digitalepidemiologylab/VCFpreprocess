@@ -1,3 +1,5 @@
+#### File downloaded from https://gist.github.com/slowkow/6215557
+
 """
 VCF.py
 Kamil Slowikowski
